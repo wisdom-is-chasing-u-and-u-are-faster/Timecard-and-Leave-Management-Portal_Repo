@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | Enterprise Timecard & Leave Portal</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/js/api.js"></script>
+</head>
+<body style="display: flex; align-items: center; justify-content: center; min-height: 100vh; background: var(--gray-100);">
+    <div class="card" style="max-width: 440px; width: 100%; padding: 2rem;">
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <h1 style="font-size: 1.5rem; color: var(--gray-900); font-weight: 700;">Welcome Back</h1>
+            <p style="color: var(--gray-700); font-size: 0.875rem; margin-top: 0.5rem;">Enterprise Single Sign-On (SSO) Portal</p>
+        </div>
+
+        <div id="login-alert" style="display: none; padding: 0.75rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.875rem;"></div>
+
+        <form id="sso-form" onsubmit="handleLogin(event)">
+            <div style="margin-bottom: 1.25rem;">
+                <label style="display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.5rem;">Corporate Email</label>
+                <input type="email" id="email-input" required value="erin.employee@enterprise.com" style="width: 100%; padding: 0.625rem; border: 1px solid var(--gray-200); border-radius: 6px; font-size: 0.875rem;">
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.5rem;">Select Role Persona</label>
+                <select id="role-select" style="width: 100%; padding: 0.625rem; border: 1px solid var(--gray-200); border-radius: 6px; font-size: 0.875rem;">
+                    <option value="EMPLOYEE">Erin Employee (Hourly Worker)</option>
+                    <option value="SUPERVISOR">Sarah Manager (Operational Supervisor)</option>
+                </select>
+            </div>
+
+            <button type="submit" id="login-submit-btn" class="btn btn-primary" style="width: 100%; margin-bottom: 1rem;">
+                Sign In with SSO (REQ-F-013)
+            </button>
+        </form>
+
+        <div style="text-align: center; margin-top: 1.5rem; border-top: 1px solid var(--gray-200); padding-top: 1.5rem;">
+            <p style="font-size: 0.75rem; color: var(--gray-700);">&copy; 2023 Enterprise Timecard Portal. All Rights Reserved. | SOX 404 Compliant</p>
+        </div>
+    </div>
+
+    <script>
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('email-input').value;
+            const role = document.getElementById('role-select').value;
+            const alertBox = document.getElementById('login-alert');
+            const submitBtn = document.getElementById('login-submit-btn');
+
+            submitBtn.disabled = true;
+            submitBtn.innerText = 'Authenticating...';
+
+            try {
+                const res = await Api.login(email, role);
+                alertBox.style.display = 'block';
+                alertBox.className = 'badge-success';
+                alertBox.innerText = `Authenticated as ${res.user.name}. Redirecting...`;
+
+                setTimeout(() => {
+                    if (res.user.role === 'SUPERVISOR') {
+                        window.location.href = '/pages/supervisor_dashboard.html';
+                    } else {
+                        window.location.href = '/pages/employee_dashboard.html';
+                    }
+                }, 800);
+            } catch (err) {
+                alertBox.style.display = 'block';
+                alertBox.className = 'badge-danger';
+                alertBox.innerText = 'Authentication error. Please retry.';
+                submitBtn.disabled = false;
+                submitBtn.innerText = 'Sign In with SSO';
+            }
+        }
+    </script>
+</body>
+</html>
