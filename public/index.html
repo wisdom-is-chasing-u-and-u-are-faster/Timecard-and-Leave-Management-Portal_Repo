@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise Timecard & Leave Management Portal</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/js/api.js"></script>
+</head>
+<body style="display: flex; align-items: center; justify-content: center; height: 100vh;">
+    <div class="card" style="text-align: center; max-width: 480px; width: 100%;">
+        <h2 style="margin-bottom: 1rem; color: var(--primary);">Enterprise Timecard & Leave Portal</h2>
+        <p style="color: var(--gray-700); margin-bottom: 1.5rem;">Redirecting to your active portal session...</p>
+        <div style="display: flex; gap: 1rem; justify-content: center;">
+            <a href="/pages/employee_dashboard.html" class="btn btn-primary">Employee Dashboard</a>
+            <a href="/pages/supervisor_dashboard.html" class="btn btn-secondary">Supervisor Dashboard</a>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const user = AuthState.getUser();
+            if (user && user.role === 'SUPERVISOR') {
+                window.location.href = '/pages/supervisor_dashboard.html';
+            } else {
+                window.location.href = '/pages/employee_dashboard.html';
+            }
+        });
+    </script>
+</body>
+</html>

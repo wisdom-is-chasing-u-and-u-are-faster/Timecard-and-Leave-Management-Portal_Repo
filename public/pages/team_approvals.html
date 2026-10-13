@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Approvals | Enterprise Timecard Portal</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/js/api.js"></script>
+</head>
+<body>
+    <header>
+        <div style="display: flex; align-items: center; gap: 2rem;">
+            <strong style="color: var(--primary); font-size: 1.125rem;">Enterprise Portal</strong>
+            <nav class="nav-links">
+                <a href="/pages/supervisor_dashboard.html">Dashboard</a>
+                <a href="/pages/team_approvals.html" class="active">Team Approvals</a>
+            </nav>
+        </div>
+        <div class="user-profile">
+            <div class="avatar" id="user-avatar" style="background: var(--warning);">SM</div>
+            <div>
+                <div id="user-name" style="font-weight: 600; font-size: 0.875rem;">Sarah Manager</div>
+                <div style="font-size: 0.75rem; color: var(--gray-700);">Supervisor (REQ-N-006)</div>
+            </div>
+            <a href="/pages/login.html" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; margin-left: 0.5rem;">Switch</a>
+        </div>
+    </header>
+
+    <main class="container">
+        <div style="margin-bottom: 2rem;">
+            <h1 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem;">Team Approvals</h1>
+            <p style="color: var(--gray-700); font-size: 0.875rem;">Bulk approve or individually manage your team's submissions.</p>
+        </div>
+
+        <div id="action-alert" style="display: none; padding: 0.75rem; border-radius: 6px; margin-bottom: 1.5rem; font-size: 0.875rem;"></div>
+
+        <!-- Pending Timesheet Submissions -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h2 style="font-size: 1.125rem; font-weight: 600;">Pending Timesheet Submissions (REQ-F-012)</h2>
+                <button id="bulk-ts-btn" onclick="handleBulkApproveTimesheets()" class="btn btn-primary" style="padding: 0.4rem 0.875rem; font-size: 0.8125rem;">Approve All</button>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Pay Period</th>
+                        <th>Total Hours</th>
+                        <th>Overtime</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="timesheets-table-body">
+                    <!-- Populated dynamically -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pending Leave Requests -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h2 style="font-size: 1.125rem; font-weight: 600;">Pending Leave Requests (REQ-F-007)</h2>
+                <button id="bulk-leave-btn" onclick="handleBulkApproveLeave()" class="btn btn-primary" style="padding: 0.4rem 0.875rem; font-size: 0.8125rem;">Approve All</button>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Type</th>
+                        <th>Dates</th>
+                        <th>Total Hours</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="leave-table-body">
+                    <!-- Populated dynamically -->
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <script>
+        async function loadApprovals() {
+            try {
+                const user = AuthState.getUser();
+                document.getElementById('user-name').innerText = user.name;
+                document.getElementById('user-avatar').innerText = user.avatar_initials || 'SM';
+
+                // Load Timesheets
+                const tsData = await Api.getPendingTimesheets();
+                const tsBody = document.getElementById('timesheets-table-body');
+                if (tsData && tsData.items && tsData.items.length > 0) {
+                    tsBody.innerHTML = tsData.items.map(item => `
+                        <tr id="row-ts-${item.id}">
+                            <td><strong>${item.employee_name}</strong></td>
+                            <td>${item.pay_period}</td>
+                            <td>${item.total_hours.toFixed(1)}</td>
+                            <td>${item.overtime_hours.toFixed(1)}</td>
+                            <td>
+                                <button onclick="handleTimesheetAction('${item.id}', 'APPROVE')" class="btn btn-success" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; margin-right: 0.25rem;">Approve</button>
+                                <button onclick="handleTimesheetAction('${item.id}', 'DENY')" class="btn btn-danger" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;">Deny</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tsBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--gray-700);">No pending timesheets</td></tr>';
+                }
+
+                // Load Leave Requests
+                const leaveData = await Api.getPendingLeave();
+                const leaveBody = document.getElementById('leave-table-body');
+                if (leaveData && leaveData.items && leaveData.items.length > 0) {
+                    leaveBody.innerHTML = leaveData.items.map(item => `
+                        <tr id="row-lr-${item.id}">
+                            <td><strong>${item.employee_name}</strong></td>
+                            <td>${item.leave_type}</td>
+                            <td>${item.dates}</td>
+                            <td>${item.total_hours.toFixed(1)}</td>
+                            <td>
+                                <button onclick="handleLeaveAction('${item.id}', 'APPROVE')" class="btn btn-success" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; margin-right: 0.25rem;">Approve</button>
+                                <button onclick="handleLeaveAction('${item.id}', 'DENY')" class="btn btn-danger" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;">Deny</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    leaveBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--gray-700);">No pending leave requests</td></tr>';
+                }
+            } catch (e) {
+                console.error('Error loading team approvals:', e);
+            }
+        }
+
+        async function handleTimesheetAction(id, action) {
+            const alertBox = document.getElementById('action-alert');
+            try {
+                const res = await Api.actOnTimesheet(id, action, 'Supervisor review complete');
+                alertBox.style.display = 'block';
+                alertBox.className = 'badge-success';
+                alertBox.innerText = `Timesheet ${id} marked as ${res.status}.`;
+                const row = document.getElementById(`row-ts-${id}`);
+                if (row) row.remove();
+            } catch (e) {
+                alertBox.style.display = 'block';
+                alertBox.className = 'badge-danger';
+                alertBox.innerText = `Error: ${e.message}`;
+            }
+        }
+
+        async function handleLeaveAction(id, action) {
+            const alertBox = document.getElementById('action-alert');
+            try {
+                const res = await Api.actOnLeave(id, action, 'Supervisor review complete');
+                alertBox.style.display = 'block';
+                alertBox.className = 'badge-success';
+                alertBox.innerText = `Leave Request ${id} marked as ${res.status}.`;
+                const row = document.getElementById(`row-lr-${id}`);
+                if (row) row.remove();
+            } catch (e) {
+                alertBox.style.display = 'block';
+                alertBox.className = 'badge-danger';
+                alertBox.innerText = `Error: ${e.message}`;
+            }
+        }
+
+        async function handleBulkApproveTimesheets() {
+            const alertBox = document.getElementById('action-alert');
+            try {
+                const res = await Api.bulkApproveTimesheets();
+                alertBox.style.display = 'block';
+                alertBox.className = 'badge-success';
+                alertBox.innerText = `Bulk approved ${res.approved_count} timesheet submissions.`;
+                loadApprovals();
+            } catch (e) {
+                alertBox.style.display = 'block';
+                alertBox.className = 'badge-danger';
+                alertBox.innerText = `Bulk action failed: ${e.message}`;
+            }
+        }
+
+        async function handleBulkApproveLeave() {
+            const alertBox = document.getElementById('action-alert');
+            try {
+                const res = await Api.bulkApproveLeave();
+                alertBox.style.display = 'block';
+                alertBox.className = 'badge-success';
+                alertBox.innerText = `Bulk approved ${res.approved_count} leave requests.`;
+                loadApprovals();
+            } catch (e) {
+                alertBox.style.display = 'block';
+                alertBox.className = 'badge-danger';
+                alertBox.innerText = `Bulk action failed: ${e.message}`;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadApprovals);
+    </script>
+</body>
+</html>

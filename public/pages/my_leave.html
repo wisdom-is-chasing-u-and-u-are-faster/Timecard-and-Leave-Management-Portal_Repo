@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Leave | Enterprise Timecard Portal</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/js/api.js"></script>
+</head>
+<body>
+    <header>
+        <div style="display: flex; align-items: center; gap: 2rem;">
+            <strong style="color: var(--primary); font-size: 1.125rem;">Enterprise Portal</strong>
+            <nav class="nav-links">
+                <a href="/pages/employee_dashboard.html">Dashboard</a>
+                <a href="/pages/my_timecard.html">My Timecard</a>
+                <a href="/pages/my_leave.html" class="active">My Leave</a>
+            </nav>
+        </div>
+        <div class="user-profile">
+            <div class="avatar" id="user-avatar">EE</div>
+            <div>
+                <div id="user-name" style="font-weight: 600; font-size: 0.875rem;">Erin Employee</div>
+                <div style="font-size: 0.75rem; color: var(--gray-700);">Employee (REQ-N-006)</div>
+            </div>
+            <a href="/pages/login.html" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; margin-left: 0.5rem;">Switch</a>
+        </div>
+    </header>
+
+    <main class="container">
+        <div style="margin-bottom: 2rem;">
+            <h1 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem;">My Leave</h1>
+            <p style="color: var(--gray-700); font-size: 0.875rem;">Manage your time-off balances and request leaves.</p>
+        </div>
+
+        <!-- Leave Balances -->
+        <div style="margin-bottom: 2rem;">
+            <h2 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">Leave Balances (REQ-F-004)</h2>
+            <div class="grid-2">
+                <div class="card" style="margin-bottom: 0;">
+                    <div style="font-size: 0.875rem; color: var(--gray-700); margin-bottom: 0.5rem;">Vacation</div>
+                    <div id="vacation-hours" style="font-size: 2rem; font-weight: 700; color: var(--primary);">87.5 <span style="font-size: 1rem; font-weight: 400; color: var(--gray-700);">hours</span></div>
+                </div>
+                <div class="card" style="margin-bottom: 0;">
+                    <div style="font-size: 0.875rem; color: var(--gray-700); margin-bottom: 0.5rem;">Sick Leave</div>
+                    <div id="sick-hours" style="font-size: 2rem; font-weight: 700; color: var(--primary);">40.0 <span style="font-size: 1rem; font-weight: 400; color: var(--gray-700);">hours</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Request Time Off Form -->
+        <div class="card">
+            <h2 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1.5rem;">Request Time Off (REQ-F-005)</h2>
+
+            <div id="leave-alert" style="display: none; padding: 0.75rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.875rem;"></div>
+
+            <form id="leave-form" onsubmit="handleLeaveSubmit(event)">
+                <div style="margin-bottom: 1.25rem;">
+                    <label style="display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.5rem;">Leave Type</label>
+                    <select id="leave-type-select" required style="width: 100%; padding: 0.625rem; border: 1px solid var(--gray-200); border-radius: 6px; font-size: 0.875rem;">
+                        <option value="Vacation">Vacation</option>
+                        <option value="Sick Leave">Sick Leave</option>
+                        <option value="Unpaid Time Off">Unpaid Time Off</option>
+                    </select>
+                </div>
+
+                <div class="grid-2" style="margin-bottom: 1.25rem;">
+                    <div>
+                        <label style="display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.5rem;">Start Date</label>
+                        <input type="date" id="start-date-input" required value="2023-11-20" style="width: 100%; padding: 0.625rem; border: 1px solid var(--gray-200); border-radius: 6px; font-size: 0.875rem;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.5rem;">End Date</label>
+                        <input type="date" id="end-date-input" required value="2023-11-24" style="width: 100%; padding: 0.625rem; border: 1px solid var(--gray-200); border-radius: 6px; font-size: 0.875rem;">
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.5rem;">Comments (Optional)</label>
+                    <textarea id="comments-input" rows="3" placeholder="Reason for time off..." style="width: 100%; padding: 0.625rem; border: 1px solid var(--gray-200); border-radius: 6px; font-size: 0.875rem;"></textarea>
+                </div>
+
+                <button type="submit" id="submit-leave-btn" class="btn btn-primary">Submit Request</button>
+            </form>
+        </div>
+    </main>
+
+    <script>
+        async function loadLeavePage() {
+            try {
+                const user = AuthState.getUser();
+                document.getElementById('user-name').innerText = user.name;
+                document.getElementById('user-avatar').innerText = user.avatar_initials || 'EE';
+
+                const balances = await Api.getLeaveBalances();
+                if (balances) {
+                    document.getElementById('vacation-hours').innerHTML = `${balances.vacation_hours.toFixed(1)} <span style="font-size: 1rem; font-weight: 400; color: var(--gray-700);">hours</span>`;
+                    document.getElementById('sick-hours').innerHTML = `${balances.sick_hours.toFixed(1)} <span style="font-size: 1rem; font-weight: 400; color: var(--gray-700);">hours</span>`;
+                }
+            } catch (e) {
+                console.error('Error loading leave data:', e);
+            }
+        }
+
+        async function handleLeaveSubmit(e) {
+            e.preventDefault();
+            const alertBox = document.getElementById('leave-alert');
+            const submitBtn = document.getElementById('submit-leave-btn');
+
+            const payload = {
+                leave_type: document.getElementById('leave-type-select').value,
+                start_date: document.getElementById('start-date-input').value,
+                end_date: document.getElementById('end-date-input').value,
+                comments: document.getElementById('comments-input').value
+            };
+
+            submitBtn.disabled = true;
+            submitBtn.innerText = 'Submitting...';
+
+            try {
+                const res = await Api.submitLeaveRequest(payload);
+                alertBox.style.display = 'block';
+                alertBox.className = 'badge-success';
+                alertBox.innerText = `Leave request (${res.leave_type}) submitted successfully. Status: PENDING`;
+                document.getElementById('leave-form').reset();
+            } catch (err) {
+                alertBox.style.display = 'block';
+                alertBox.className = 'badge-danger';
+                alertBox.innerText = `Error submitting request: ${err.message}`;
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerText = 'Submit Request';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadLeavePage);
+    </script>
+</body>
+</html>

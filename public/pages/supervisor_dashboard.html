@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supervisor Dashboard | Enterprise Timecard Portal</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/js/api.js"></script>
+</head>
+<body>
+    <header>
+        <div style="display: flex; align-items: center; gap: 2rem;">
+            <strong style="color: var(--primary); font-size: 1.125rem;">Enterprise Portal</strong>
+            <nav class="nav-links">
+                <a href="/pages/supervisor_dashboard.html" class="active">Dashboard</a>
+                <a href="/pages/team_approvals.html">Team Approvals</a>
+            </nav>
+        </div>
+        <div class="user-profile">
+            <div class="avatar" id="user-avatar" style="background: var(--warning);">SM</div>
+            <div>
+                <div id="user-name" style="font-weight: 600; font-size: 0.875rem;">Sarah Manager</div>
+                <div style="font-size: 0.75rem; color: var(--gray-700);">Supervisor (REQ-N-006)</div>
+            </div>
+            <a href="/pages/login.html" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; margin-left: 0.5rem;">Switch</a>
+        </div>
+    </header>
+
+    <main class="container">
+        <div style="margin-bottom: 2rem;">
+            <h1 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem;">Supervisor Dashboard</h1>
+            <p style="color: var(--gray-700); font-size: 0.875rem;">Review and approve your team's pending items. (REQ-F-011)</p>
+        </div>
+
+        <div class="grid-2">
+            <!-- Pending Timesheets Card -->
+            <div class="card">
+                <div style="font-size: 0.875rem; color: var(--gray-700); margin-bottom: 0.5rem;">Pending Timesheets</div>
+                <div id="pending-timesheets-count" style="font-size: 2.5rem; font-weight: 700; color: var(--primary); margin-bottom: 1.25rem;">8</div>
+                <a href="/pages/team_approvals.html" class="btn btn-primary" style="width: 100%;">Review Timesheets</a>
+            </div>
+
+            <!-- Pending Leave Requests Card -->
+            <div class="card">
+                <div style="font-size: 0.875rem; color: var(--gray-700); margin-bottom: 0.5rem;">Pending Leave Requests</div>
+                <div id="pending-leave-count" style="font-size: 2.5rem; font-weight: 700; color: var(--warning); margin-bottom: 1.25rem;">3</div>
+                <a href="/pages/team_approvals.html" class="btn btn-secondary" style="width: 100%;">Review Leave Requests</a>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        async function loadSupervisorDashboard() {
+            try {
+                const user = AuthState.getUser();
+                if (user && user.role !== 'SUPERVISOR') {
+                    // Switch to supervisor persona
+                    AuthState.setUser({
+                        id: 'usr_supervisor_01',
+                        name: 'Sarah Manager',
+                        email: 'sarah.manager@enterprise.com',
+                        role: 'SUPERVISOR',
+                        avatar_initials: 'SM'
+                    }, 'jwt_mock_token_usr_supervisor_01_SUPERVISOR');
+                }
+
+                const u = AuthState.getUser();
+                document.getElementById('user-name').innerText = u.name;
+                document.getElementById('user-avatar').innerText = u.avatar_initials || 'SM';
+
+                const summary = await Api.getSupervisorSummary();
+                if (summary) {
+                    document.getElementById('pending-timesheets-count').innerText = summary.pending_timesheets_count;
+                    document.getElementById('pending-leave-count').innerText = summary.pending_leave_requests_count;
+                }
+            } catch (e) {
+                console.error('Error loading supervisor summary:', e);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadSupervisorDashboard);
+    </script>
+</body>
+</html>

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Timecard | Enterprise Timecard Portal</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/js/api.js"></script>
+</head>
+<body>
+    <header>
+        <div style="display: flex; align-items: center; gap: 2rem;">
+            <strong style="color: var(--primary); font-size: 1.125rem;">Enterprise Portal</strong>
+            <nav class="nav-links">
+                <a href="/pages/employee_dashboard.html">Dashboard</a>
+                <a href="/pages/my_timecard.html" class="active">My Timecard</a>
+                <a href="/pages/my_leave.html">My Leave</a>
+            </nav>
+        </div>
+        <div class="user-profile">
+            <div class="avatar" id="user-avatar">EE</div>
+            <div>
+                <div id="user-name" style="font-weight: 600; font-size: 0.875rem;">Erin Employee</div>
+                <div style="font-size: 0.75rem; color: var(--gray-700);">Employee (REQ-N-006)</div>
+            </div>
+            <a href="/pages/login.html" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; margin-left: 0.5rem;">Switch</a>
+        </div>
+    </header>
+
+    <main class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <div>
+                <h1 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem;">My Timecard</h1>
+                <p style="color: var(--gray-700); font-size: 0.875rem;">Pay Period: <span id="pay-period-label" style="font-weight: 600;">Oct 16 - Oct 31, 2023</span> (REQ-F-010)</p>
+            </div>
+            <div style="display: flex; gap: 0.75rem;">
+                <button id="submit-timecard-btn" onclick="submitCurrentTimecard()" class="btn btn-primary">Submit Timecard for Approval</button>
+            </div>
+        </div>
+
+        <div id="submit-alert" style="display: none; padding: 0.75rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.875rem;"></div>
+
+        <div class="card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Clock In</th>
+                        <th>Clock Out</th>
+                        <th>Clock In</th>
+                        <th>Clock Out</th>
+                        <th>Total Hours</th>
+                    </tr>
+                </thead>
+                <tbody id="timecard-table-body">
+                    <tr>
+                        <td>Mon, Oct 16</td>
+                        <td>08:57 AM</td>
+                        <td>01:00 PM</td>
+                        <td>01:30 PM</td>
+                        <td>05:32 PM</td>
+                        <td>8.08</td>
+                    </tr>
+                    <tr>
+                        <td>Tue, Oct 17</td>
+                        <td>09:01 AM</td>
+                        <td>01:05 PM</td>
+                        <td>01:33 PM</td>
+                        <td>05:29 PM</td>
+                        <td>7.97</td>
+                    </tr>
+                    <tr>
+                        <td>Wed, Oct 18</td>
+                        <td>08:55 AM</td>
+                        <td>12:30 PM</td>
+                        <td>01:00 PM</td>
+                        <td>05:30 PM</td>
+                        <td>8.08</td>
+                    </tr>
+                    <tr>
+                        <td>Thu, Oct 19</td>
+                        <td>09:05 AM</td>
+                        <td>01:00 PM</td>
+                        <td>01:30 PM</td>
+                        <td>05:35 PM</td>
+                        <td>8.00</td>
+                    </tr>
+                    <tr>
+                        <td>Fri, Oct 20</td>
+                        <td colspan="4" style="color: var(--primary); font-weight: 500;">APPROVED LEAVE - 8h</td>
+                        <td>8.00</td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr style="background: var(--gray-50); font-weight: 700;">
+                        <td colspan="5" style="text-align: right; padding: 1rem;">Pay Period Total (FLSA Verified):</td>
+                        <td id="total-hours-cell" style="padding: 1rem; color: var(--primary); font-size: 1.125rem;">40.13</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </main>
+
+    <script>
+        let currentTimecardId = 'tc_current_01';
+
+        async function loadTimecard() {
+            try {
+                const user = AuthState.getUser();
+                document.getElementById('user-name').innerText = user.name;
+                document.getElementById('user-avatar').innerText = user.avatar_initials || 'EE';
+
+                const tc = await Api.getCurrentTimecard();
+                if (tc) {
+                    currentTimecardId = tc.timecard_id;
+                    document.getElementById('pay-period-label').innerText = tc.pay_period;
+                    document.getElementById('total-hours-cell').innerText = tc.total_hours.toFixed(2);
+
+                    const tbody = document.getElementById('timecard-table-body');
+                    tbody.innerHTML = tc.days.map(d => {
+                        if (d.notes && d.notes.includes('LEAVE')) {
+                            return `
+                                <tr>
+                                    <td>${d.date}</td>
+                                    <td colspan="4" style="color: var(--primary); font-weight: 500;">${d.notes}</td>
+                                    <td>${d.hours.toFixed(2)}</td>
+                                </tr>
+                            `;
+                        }
+                        const pIn1 = d.punches[0] ? d.punches[0].time : '--:--';
+                        const pOut1 = d.punches[1] ? d.punches[1].time : '--:--';
+                        const pIn2 = d.punches[2] ? d.punches[2].time : '--:--';
+                        const pOut2 = d.punches[3] ? d.punches[3].time : '--:--';
+                        return `
+                            <tr>
+                                <td>${d.date}</td>
+                                <td>${pIn1}</td>
+                                <td>${pOut1}</td>
+                                <td>${pIn2}</td>
+                                <td>${pOut2}</td>
+                                <td>${d.hours.toFixed(2)}</td>
+                            </tr>
+                        `;
+                    }).join('');
+
+                    if (tc.status === 'SUBMITTED') {
+                        const btn = document.getElementById('submit-timecard-btn');
+                        btn.disabled = true;
+                        btn.innerText = 'Submitted (Pending Supervisor Sign-Off)';
+                    }
+                }
+            } catch (e) {
+                console.error('Error loading timecard:', e);
+            }
+        }
+
+        async function submitCurrentTimecard() {
+            const alertBox = document.getElementById('submit-alert');
+            const btn = document.getElementById('submit-timecard-btn');
+            try {
+                btn.disabled = true;
+                const res = await Api.submitTimecard(currentTimecardId);
+                alertBox.style.display = 'block';
+                alertBox.className = 'badge-success';
+                alertBox.innerText = `Timecard ${currentTimecardId} submitted successfully for supervisor approval.`;
+                btn.innerText = 'Submitted (Pending Sign-off)';
+            } catch (e) {
+                alertBox.style.display = 'block';
+                alertBox.className = 'badge-danger';
+                alertBox.innerText = `Submission failed: ${e.message}`;
+                btn.disabled = false;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadTimecard);
+    </script>
+</body>
+</html>

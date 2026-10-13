@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Dashboard | Enterprise Timecard Portal</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/js/api.js"></script>
+</head>
+<body>
+    <div id="offline-banner" class="offline-banner">
+        <span>⚠️ Offline Mode Active — Punches will be queued locally and synchronized automatically when online. (REQ-F-002)</span>
+    </div>
+
+    <header>
+        <div style="display: flex; align-items: center; gap: 2rem;">
+            <strong style="color: var(--primary); font-size: 1.125rem;">Enterprise Portal</strong>
+            <nav class="nav-links">
+                <a href="/pages/employee_dashboard.html" class="active">Dashboard</a>
+                <a href="/pages/my_timecard.html">My Timecard</a>
+                <a href="/pages/my_leave.html">My Leave</a>
+            </nav>
+        </div>
+        <div class="user-profile">
+            <div class="avatar" id="user-avatar">EE</div>
+            <div>
+                <div id="user-name" style="font-weight: 600; font-size: 0.875rem;">Erin Employee</div>
+                <div style="font-size: 0.75rem; color: var(--gray-700);">Employee (REQ-N-006)</div>
+            </div>
+            <a href="/pages/login.html" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; margin-left: 0.5rem;">Switch</a>
+        </div>
+    </header>
+
+    <main class="container">
+        <div style="margin-bottom: 2rem;">
+            <h1 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem;">Employee Dashboard</h1>
+            <p style="color: var(--gray-700); font-size: 0.875rem;">Welcome back, <span id="welcome-name">Erin</span>. Here is your summary for today.</p>
+        </div>
+
+        <div class="grid-2">
+            <!-- Time Punch Card -->
+            <div class="card">
+                <h2 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">Time Punch (REQ-F-001)</h2>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; padding: 1rem; background: var(--gray-50); border-radius: 6px;">
+                    <div>
+                        <div style="font-size: 0.75rem; color: var(--gray-700); text-transform: uppercase;">Current Status</div>
+                        <div id="punch-status-label" style="font-weight: 700; font-size: 1.125rem; color: var(--success); margin-top: 0.25rem;">
+                            Clocked In at 8:57 AM
+                        </div>
+                    </div>
+                    <span id="punch-badge" class="badge badge-success">Active Shift</span>
+                </div>
+
+                <div style="display: flex; gap: 1rem;">
+                    <button id="clock-in-btn" onclick="executePunch('CLOCK_IN')" class="btn btn-primary" style="flex: 1;">Clock In</button>
+                    <button id="clock-out-btn" onclick="executePunch('CLOCK_OUT')" class="btn btn-danger" style="flex: 1;">Clock Out</button>
+                </div>
+                <div id="punch-alert" style="margin-top: 1rem; font-size: 0.8125rem; display: none; padding: 0.5rem; border-radius: 4px;"></div>
+            </div>
+
+            <!-- Today's Timecard Card -->
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h2 style="font-size: 1.125rem; font-weight: 600;">Today's Timecard (REQ-F-010)</h2>
+                    <span id="today-date" style="font-size: 0.8125rem; color: var(--gray-700);">Oct 20, 2023</span>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Time</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="today-table-body">
+                        <tr>
+                            <td>Clock In</td>
+                            <td>8:57 AM</td>
+                            <td>4h 3min</td>
+                        </tr>
+                        <tr>
+                            <td>Clock Out</td>
+                            <td>1:00 PM</td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td>Clock In</td>
+                            <td>1:30 PM</td>
+                            <td>---</td>
+                        </tr>
+                        <tr>
+                            <td>Clock Out</td>
+                            <td>--:--</td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        async function loadDashboard() {
+            try {
+                const user = AuthState.getUser();
+                document.getElementById('user-name').innerText = user.name;
+                document.getElementById('welcome-name').innerText = user.name.split(' ')[0];
+                document.getElementById('user-avatar').innerText = user.avatar_initials || 'EE';
+
+                const status = await Api.getPunchStatus();
+                updatePunchUI(status);
+
+                const todayData = await Api.getTodayPunches();
+                if (todayData && todayData.entries) {
+                    document.getElementById('today-date').innerText = todayData.date;
+                    const tbody = document.getElementById('today-table-body');
+                    tbody.innerHTML = todayData.entries.map(e => `
+                        <tr>
+                            <td>${e.type}</td>
+                            <td>${e.time}</td>
+                            <td>${e.total || ''}</td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (e) {
+                console.error('Error loading dashboard:', e);
+            }
+        }
+
+        function updatePunchUI(status) {
+            const label = document.getElementById('punch-status-label');
+            const badge = document.getElementById('punch-badge');
+            const inBtn = document.getElementById('clock-in-btn');
+            const outBtn = document.getElementById('clock-out-btn');
+
+            if (status.is_clocked_in) {
+                label.innerText = `Clocked In (${status.elapsed_today})`;
+                label.style.color = 'var(--success)';
+                badge.className = 'badge badge-success';
+                badge.innerText = 'Active Shift';
+                inBtn.disabled = true;
+                outBtn.disabled = false;
+            } else {
+                label.innerText = 'Clocked Out';
+                label.style.color = 'var(--gray-700)';
+                badge.className = 'badge badge-warning';
+                badge.innerText = 'Off Shift';
+                inBtn.disabled = false;
+                outBtn.disabled = true;
+            }
+        }
+
+        async function executePunch(punchType) {
+            const alertBox = document.getElementById('punch-alert');
+            try {
+                const res = await Api.recordPunch(punchType);
+                alertBox.style.display = 'block';
+                alertBox.className = 'badge badge-success';
+                alertBox.innerText = `Success: ${punchType} recorded at ${res.timestamp}`;
+                loadDashboard();
+            } catch (e) {
+                alertBox.style.display = 'block';
+                alertBox.className = 'badge badge-danger';
+                alertBox.innerText = `Error: ${e.message}`;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadDashboard);
+    </script>
+</body>
+</html>
