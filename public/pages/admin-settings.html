@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin & Security Settings — Enterprise HRMS</title>
+  <link rel="stylesheet" href="/css/tokens.css">
+</head>
+<body>
+  <header class="header-bar">
+    <a href="/index.html" class="brand-logo">Enterprise HRMS Core</a>
+    <nav>
+      <ul class="nav-links">
+        <li><a href="/pages/dashboard.html" class="nav-link">Dashboard</a></li>
+        <li><a href="/pages/employee-directory.html" class="nav-link">Directory</a></li>
+        <li><a href="/pages/leave-management.html" class="nav-link">Leave</a></li>
+        <li><a href="/pages/attendance.html" class="nav-link">Attendance</a></li>
+        <li><a href="/pages/documents.html" class="nav-link">Vault</a></li>
+        <li><a href="/pages/payroll.html" class="nav-link">Payroll</a></li>
+        <li><a href="/pages/admin-settings.html" class="nav-link active">Admin</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="container">
+    <h2 style="font-size: var(--font-size-h2); font-weight: 700; margin-bottom: 1.5rem;">Administration & Platform Configuration</h2>
+
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <h3 class="card-title">Microsoft Azure Active Directory (Entra ID) Single Sign-On</h3>
+      <table class="table" style="margin-top: 1rem;">
+        <tr>
+          <td><strong>OIDC Protocol</strong></td>
+          <td>OpenID Connect 1.0 (PKCE + MSAL Node)</td>
+        </tr>
+        <tr>
+          <td><strong>Tenant Connection Status</strong></td>
+          <td><span class="badge badge-success">ACTIVE &bull; CONNECTED</span></td>
+        </tr>
+        <tr>
+          <td><strong>JIT User Provisioning</strong></td>
+          <td><span class="badge badge-info">ENABLED</span> (Auto-create Employee record on first login)</td>
+        </tr>
+        <tr>
+          <td><strong>Token Signing Algorithm</strong></td>
+          <td>RS256 (Azure Entra ID JWKS Keys)</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3 class="card-title">GCP Cloud Run & Cloud SQL Infrastructure Status</h3>
+      <table class="table" style="margin-top: 1rem;">
+        <tr>
+          <td><strong>Compute Runtime</strong></td>
+          <td>Google Cloud Run (Scale-to-zero enabled, Min: 0, Max: 10)</td>
+        </tr>
+        <tr>
+          <td><strong>Database Tier</strong></td>
+          <td>Cloud SQL for PostgreSQL 16 (High Availability)</td>
+        </tr>
+        <tr>
+          <td><strong>Secrets Management</strong></td>
+          <td>Google Cloud Secret Manager (Automated injection)</td>
+        </tr>
+        <tr>
+          <td><strong>Container Health Probe</strong></td>
+          <td><code>GET /health</code> (Status: HTTP 200 OK)</td>
+        </tr>
+      </table>
+    </div>
+  </main>
+</body>
+</html>

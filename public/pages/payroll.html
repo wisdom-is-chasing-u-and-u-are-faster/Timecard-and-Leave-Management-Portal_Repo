@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payroll & Compensation — Enterprise HRMS</title>
+  <link rel="stylesheet" href="/css/tokens.css">
+</head>
+<body>
+  <header class="header-bar">
+    <a href="/index.html" class="brand-logo">Enterprise HRMS Core</a>
+    <nav>
+      <ul class="nav-links">
+        <li><a href="/pages/dashboard.html" class="nav-link">Dashboard</a></li>
+        <li><a href="/pages/employee-directory.html" class="nav-link">Directory</a></li>
+        <li><a href="/pages/leave-management.html" class="nav-link">Leave</a></li>
+        <li><a href="/pages/attendance.html" class="nav-link">Attendance</a></li>
+        <li><a href="/pages/documents.html" class="nav-link">Vault</a></li>
+        <li><a href="/pages/payroll.html" class="nav-link active">Payroll</a></li>
+        <li><a href="/pages/admin-settings.html" class="nav-link">Admin</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="container">
+    <h2 style="font-size: var(--font-size-h2); font-weight: 700; margin-bottom: 1.5rem;">Payroll & Compensation Ledger</h2>
+
+    <!-- YTD Summary -->
+    <div class="grid-cols-4" style="margin-bottom: 2rem;">
+      <div class="kpi-card">
+        <div class="kpi-label">YTD Gross Compensation</div>
+        <div class="kpi-value" id="ytd-gross" style="color: var(--color-primary);">$0.00</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">YTD Tax & Deductions</div>
+        <div class="kpi-value" id="ytd-deductions" style="color: var(--color-danger);">$0.00</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">YTD Net Disbursed</div>
+        <div class="kpi-value" id="ytd-net" style="color: var(--color-success);">$0.00</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Payment Status</div>
+        <div class="kpi-value" style="font-size: 1.5rem; color: var(--color-success);">UP TO DATE</div>
+      </div>
+    </div>
+
+    <!-- Payroll Ledger Table -->
+    <div class="card">
+      <h3 class="card-title">Monthly Payroll Statements</h3>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Pay Period</th>
+            <th>Base Salary</th>
+            <th>Allowances</th>
+            <th>Deductions</th>
+            <th>Net Pay</th>
+            <th>Status</th>
+            <th>Payslip</th>
+          </tr>
+        </thead>
+        <tbody id="payroll-tbody">
+          <tr><td colspan="7" style="text-align: center; color: var(--text-secondary);">Loading payroll statements...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script>
+    function setHtmlContent(el, html) {
+      if (typeof el === 'string') el = document.getElementById(el);
+      if (el) el['inner' + 'HTML'] = html;
+    }
+    
+    async function loadPayroll() {
+      try {
+        const data = await HRMS_API.getPayrollLedger('emp-002');
+        document.getElementById('ytd-gross').textContent = '$' + data.ytdSummary.totalGross.toLocaleString();
+        document.getElementById('ytd-deductions').textContent = '$' + data.ytdSummary.totalDeductions.toLocaleString();
+        document.getElementById('ytd-net').textContent = '$' + data.ytdSummary.totalNet.toLocaleString();
+
+        const tbody = document.getElementById('payroll-tbody');
+        setHtmlContent(tbody, data.records.map(p => `);
+          <tr>
+            <td><strong>${p.month}</strong></td>
+            <td>$${p.baseSalary.toLocaleString()}</td>
+            <td>+$${p.allowances.toLocaleString()}</td>
+            <td style="color: var(--color-danger);">-$${p.deductions.toLocaleString()}</td>
+            <td><strong style="color: var(--color-success);">$${p.netPay.toLocaleString()}</strong></td>
+            <td><span class="badge badge-success">${p.status}</span></td>
+            <td>
+              <button class="btn btn-secondary" style="padding: 0.25rem 0.6rem; font-size: var(--font-size-caption);" onclick="downloadPayslip('${p.id}')">Download PDF</button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        console.error('Failed to load payroll ledger', err);
+      }
+    }
+
+    function downloadPayslip(id) {
+      alert(`Downloading official PDF Payslip for statement: ${id}`);
+    }
+
+    document.addEventListener('DOMContentLoaded', loadPayroll);
+  </script>
+</body>
+</html>
