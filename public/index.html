@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enterprise HRMS Platform Core</title>
+  <link rel="stylesheet" href="/css/tokens.css">
+</head>
+<body>
+  <header class="header-bar">
+    <a href="/index.html" class="brand-logo">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+      </svg>
+      Enterprise HRMS Core
+    </a>
+    <nav>
+      <ul class="nav-links">
+        <li><a href="/pages/dashboard.html" class="nav-link active">Dashboard</a></li>
+        <li><a href="/pages/employee-directory.html" class="nav-link">Directory</a></li>
+        <li><a href="/pages/leave-management.html" class="nav-link">Leave</a></li>
+        <li><a href="/pages/attendance.html" class="nav-link">Attendance</a></li>
+        <li><a href="/pages/documents.html" class="nav-link">Vault</a></li>
+        <li><a href="/pages/payroll.html" class="nav-link">Payroll</a></li>
+        <li><a href="/pages/admin-settings.html" class="nav-link">Admin</a></li>
+      </ul>
+    </nav>
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <span id="health-badge" class="badge badge-info">Checking...</span>
+      <span id="user-display" style="font-weight: 600; font-size: var(--font-size-caption);">HR Admin</span>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="card" style="background: var(--color-gradient); color: #fff; margin-bottom: 2rem;">
+      <h1 style="font-size: var(--font-size-display); font-weight: 800; margin-bottom: 0.5rem;">Enterprise HRMS Platform Core</h1>
+      <p style="font-size: var(--font-size-body); opacity: 0.95;">
+        Modular Monolithic HR Ecosystem on GCP Cloud Run & Cloud SQL PostgreSQL with Azure AD (Entra ID) Single Sign-On.
+      </p>
+    </div>
+
+    <!-- Quick Navigation Modules -->
+    <div class="grid-cols-4">
+      <div class="card">
+        <h3 class="card-title">👥 Employee Directory</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 1rem;">Search employees, view profiles, and inspect reporting lines.</p>
+        <a href="/pages/employee-directory.html" class="btn btn-primary">Open Directory</a>
+      </div>
+
+      <div class="card">
+        <h3 class="card-title">🌴 Leave Management</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 1rem;">Check balances, request PTO, and manage team approvals.</p>
+        <a href="/pages/leave-management.html" class="btn btn-primary">Manage Leaves</a>
+      </div>
+
+      <div class="card">
+        <h3 class="card-title">⏱️ Virtual Attendance</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 1rem;">Clock in/out, view timesheets, and track overtime hours.</p>
+        <a href="/pages/attendance.html" class="btn btn-primary">Clock In/Out</a>
+      </div>
+
+      <div class="card">
+        <h3 class="card-title">📁 Document Vault</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 1rem;">Encrypted GCS vault with 15-minute secure pre-signed URLs.</p>
+        <a href="/pages/documents.html" class="btn btn-primary">Access Vault</a>
+      </div>
+    </div>
+
+    <div class="grid-cols-4" style="margin-top: 1.5rem;">
+      <div class="card">
+        <h3 class="card-title">💰 Payroll & Compensation</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 1rem;">Compensation ledger, deduction summaries, and payslip downloads.</p>
+        <a href="/pages/payroll.html" class="btn btn-primary">View Payroll</a>
+      </div>
+
+      <div class="card">
+        <h3 class="card-title">⚙️ Admin & Security</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 1rem;">Azure AD OIDC integration, RBAC matrix, and audit logging.</p>
+        <a href="/pages/admin-settings.html" class="btn btn-secondary">Platform Settings</a>
+      </div>
+    </div>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>
