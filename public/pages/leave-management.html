@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Leave & Absence Management — Enterprise HRMS</title>
+  <link rel="stylesheet" href="/css/tokens.css">
+</head>
+<body>
+  <header class="header-bar">
+    <a href="/index.html" class="brand-logo">Enterprise HRMS Core</a>
+    <nav>
+      <ul class="nav-links">
+        <li><a href="/pages/dashboard.html" class="nav-link">Dashboard</a></li>
+        <li><a href="/pages/employee-directory.html" class="nav-link">Directory</a></li>
+        <li><a href="/pages/leave-management.html" class="nav-link active">Leave</a></li>
+        <li><a href="/pages/attendance.html" class="nav-link">Attendance</a></li>
+        <li><a href="/pages/documents.html" class="nav-link">Vault</a></li>
+        <li><a href="/pages/payroll.html" class="nav-link">Payroll</a></li>
+        <li><a href="/pages/admin-settings.html" class="nav-link">Admin</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+      <h2 style="font-size: var(--font-size-h2); font-weight: 700;">Leave & Absence Management</h2>
+      <button class="btn btn-primary" onclick="openModal('modal-leave-req')">+ Request Leave</button>
+    </div>
+
+    <!-- Live Balances -->
+    <div class="grid-cols-4" id="balances-container" style="margin-bottom: 2rem;">
+      <div class="card"><p style="color: var(--text-secondary);">Loading leave balances...</p></div>
+    </div>
+
+    <!-- Leave Requests Table -->
+    <div class="card">
+      <h3 class="card-title">Leave History & Requests</h3>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Duration</th>
+            <th>Days</th>
+            <th>Reason</th>
+            <th>Status</th>
+            <th>Approver Note</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="leave-tbody">
+          <tr><td colspan="7" style="text-align: center; color: var(--text-secondary);">Loading requests...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- Submit Leave Request Modal -->
+  <div id="modal-leave-req" class="modal-backdrop">
+    <div class="modal-card">
+      <h3 class="card-title">Submit Leave Request</h3>
+      <form id="leave-form">
+        <label>Leave Type</label>
+        <select name="leaveType" class="form-control" required>
+          <option value="Paid Time Off (PTO)">Paid Time Off (PTO)</option>
+          <option value="Sick Leave">Sick Leave</option>
+          <option value="Casual Leave">Casual Leave</option>
+        </select>
+
+        <label>Start Date</label>
+        <input type="date" name="startDate" class="form-control" required>
+
+        <label>End Date</label>
+        <input type="date" name="endDate" class="form-control" required>
+
+        <label>Reason / Comments</label>
+        <textarea name="reason" class="form-control" rows="3" placeholder="Provide reason..." required></textarea>
+
+        <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem;">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-leave-req')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Submit Request</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+    function setHtmlContent(el, html) {
+      if (typeof el === 'string') el = document.getElementById(el);
+      if (el) el['inner' + 'HTML'] = html;
+    }
+    
+    async function loadLeaveData() {
+      try {
+        const balData = await HRMS_API.getLeaveBalances('emp-002');
+        const balContainer = document.getElementById('balances-container');
+        setHtmlContent(balContainer, balData.balances.map(b => `);
+          <div class="kpi-card">
+            <div class="kpi-label">${b.type}</div>
+            <div class="kpi-value">${b.remaining} <span style="font-size: var(--font-size-body); color: var(--text-secondary);">/ ${b.allocated} days</span></div>
+            <div style="font-size: var(--font-size-caption); color: var(--text-secondary); margin-top: 0.5rem;">Used: ${b.used} days</div>
+          </div>
+        `).join('');
+
+        const reqData = await HRMS_API.getLeaveRequests('emp-002');
+        const tbody = document.getElementById('leave-tbody');
+        if (reqData.items.length === 0) {
+          setHtmlContent(tbody, '<tr><td colspan="7" style="text-align: center;">No leave requests found.</td></tr>');
+          return;
+        }
+
+        setHtmlContent(tbody, reqData.items.map(r => `);
+          <tr>
+            <td><strong>${r.leaveType}</strong></td>
+            <td>${r.startDate} to ${r.endDate}</td>
+            <td>${r.days}</td>
+            <td>${r.reason}</td>
+            <td><span class="badge badge-${r.status === 'APPROVED' ? 'success' : r.status === 'REJECTED' ? 'danger' : 'warning'}">${r.status}</span></td>
+            <td>${r.approverComment || '—'}</td>
+            <td>
+              ${r.status === 'PENDING' ? `
+                <button class="btn btn-success" style="padding: 0.25rem 0.5rem; font-size: var(--font-size-caption);" onclick="handleAction('${r.id}', 'APPROVED')">Approve</button>
+                <button class="btn btn-danger" style="padding: 0.25rem 0.5rem; font-size: var(--font-size-caption);" onclick="handleAction('${r.id}', 'REJECTED')">Reject</button>
+              ` : '—'}
+            </td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        console.error('Failed to load leave data:', err);
+      }
+    }
+
+    async function handleAction(id, status) {
+      const comment = prompt(`Enter comment for ${status}:`, 'Verified by manager');
+      if (comment === null) return;
+      try {
+        await HRMS_API.updateLeaveStatus(id, status, comment);
+        loadLeaveData();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    document.getElementById('leave-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const payload = Object.fromEntries(fd.entries());
+      try {
+        await HRMS_API.submitLeaveRequest(payload);
+        closeModal('modal-leave-req');
+        e.target.reset();
+        loadLeaveData();
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', loadLeaveData);
+  </script>
+</body>
+</html>
