@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Executive Dashboard — Enterprise HRMS</title>
+  <link rel="stylesheet" href="/css/tokens.css">
+</head>
+<body>
+  <header class="header-bar">
+    <a href="/index.html" class="brand-logo">Enterprise HRMS Core</a>
+    <nav>
+      <ul class="nav-links">
+        <li><a href="/pages/dashboard.html" class="nav-link active">Dashboard</a></li>
+        <li><a href="/pages/employee-directory.html" class="nav-link">Directory</a></li>
+        <li><a href="/pages/leave-management.html" class="nav-link">Leave</a></li>
+        <li><a href="/pages/attendance.html" class="nav-link">Attendance</a></li>
+        <li><a href="/pages/documents.html" class="nav-link">Vault</a></li>
+        <li><a href="/pages/payroll.html" class="nav-link">Payroll</a></li>
+        <li><a href="/pages/admin-settings.html" class="nav-link">Admin</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="container">
+    <h2 style="font-size: var(--font-size-h2); font-weight: 700; margin-bottom: 1.5rem;">Executive Overview</h2>
+
+    <!-- Live KPI Summary Cards -->
+    <div class="grid-cols-4" style="margin-bottom: 2rem;">
+      <div class="kpi-card">
+        <div class="kpi-label">Total Headcount</div>
+        <div class="kpi-value" id="kpi-employees">--</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Pending Leave Requests</div>
+        <div class="kpi-value" id="kpi-leaves" style="color: var(--color-warning);">--</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Today's Attendance Rate</div>
+        <div class="kpi-value" id="kpi-attendance" style="color: var(--color-success);">--%</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Active Departments</div>
+        <div class="kpi-value" id="kpi-depts">--</div>
+      </div>
+    </div>
+
+    <!-- Announcements & Upcoming Events -->
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;">
+      <div class="card">
+        <h3 class="card-title">Company Announcements</h3>
+        <ul id="announcements-list" style="list-style: none;">
+          <li style="color: var(--text-secondary);">Loading announcements...</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3 class="card-title">Upcoming Holidays</h3>
+        <ul id="holidays-list" style="list-style: none;">
+          <li style="color: var(--text-secondary);">Loading holidays...</li>
+        </ul>
+      </div>
+    </div>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script>
+    function setHtmlContent(el, html) {
+      if (typeof el === 'string') el = document.getElementById(el);
+      if (el) el['inner' + 'HTML'] = html;
+    }
+    
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const metrics = await HRMS_API.getDashboardMetrics();
+        document.getElementById('kpi-employees').textContent = metrics.totalEmployees;
+        document.getElementById('kpi-leaves').textContent = metrics.pendingLeaveApprovals;
+        document.getElementById('kpi-attendance').textContent = metrics.todayAttendanceRate + '%';
+        document.getElementById('kpi-depts').textContent = metrics.departmentsCount;
+
+        const annList = document.getElementById('announcements-list');
+        setHtmlContent(annList, metrics.announcements.map(a => `);
+          <li style="padding: 0.75rem 0; border-bottom: 1px solid var(--border-subtle);">
+            <strong>${a.title}</strong>
+            <div style="font-size: var(--font-size-caption); color: var(--text-secondary);">${a.date} &bull; ${a.category}</div>
+          </li>
+        `).join('');
+
+        const holList = document.getElementById('holidays-list');
+        setHtmlContent(holList, metrics.upcomingHolidays.map(h => `);
+          <li style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between;">
+            <span>${h.name}</span>
+            <span class="badge badge-info">${h.date}</span>
+          </li>
+        `).join('');
+      } catch (err) {
+        console.error('Failed to load dashboard metrics', err);
+      }
+    });
+  </script>
+</body>
+</html>
