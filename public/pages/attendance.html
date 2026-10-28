@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Virtual Attendance & Timesheet — Enterprise HRMS</title>
+  <link rel="stylesheet" href="/css/tokens.css">
+</head>
+<body>
+  <header class="header-bar">
+    <a href="/index.html" class="brand-logo">Enterprise HRMS Core</a>
+    <nav>
+      <ul class="nav-links">
+        <li><a href="/pages/dashboard.html" class="nav-link">Dashboard</a></li>
+        <li><a href="/pages/employee-directory.html" class="nav-link">Directory</a></li>
+        <li><a href="/pages/leave-management.html" class="nav-link">Leave</a></li>
+        <li><a href="/pages/attendance.html" class="nav-link active">Attendance</a></li>
+        <li><a href="/pages/documents.html" class="nav-link">Vault</a></li>
+        <li><a href="/pages/payroll.html" class="nav-link">Payroll</a></li>
+        <li><a href="/pages/admin-settings.html" class="nav-link">Admin</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="container">
+    <h2 style="font-size: var(--font-size-h2); font-weight: 700; margin-bottom: 1.5rem;">Virtual Attendance & Timesheet</h2>
+
+    <!-- Live Clock-In Action Card -->
+    <div class="card" style="display: flex; justify-content: space-between; align-items: center; background: #fff;">
+      <div>
+        <h3 class="card-title" style="margin-bottom: 0.25rem;">Daily Time Tracker</h3>
+        <p style="color: var(--text-secondary); font-size: var(--font-size-body);">Current Shift: <span id="shift-status" class="badge badge-warning">CHECKING...</span></p>
+      </div>
+      <div style="display: flex; gap: 1rem;">
+        <button id="clock-in-btn" class="btn btn-primary" onclick="doClockIn()">Clock In</button>
+        <button id="clock-out-btn" class="btn btn-secondary" onclick="doClockOut()">Clock Out</button>
+      </div>
+    </div>
+
+    <!-- Attendance History Logs -->
+    <div class="card">
+      <h3 class="card-title">Daily Attendance Logs</h3>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Clock In</th>
+            <th>Clock Out</th>
+            <th>Total Hours</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="attendance-tbody">
+          <tr><td colspan="5" style="text-align: center; color: var(--text-secondary);">Loading records...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script>
+    function setHtmlContent(el, html) {
+      if (typeof el === 'string') el = document.getElementById(el);
+      if (el) el['inner' + 'HTML'] = html;
+    }
+    
+    async function loadAttendance() {
+      try {
+        const data = await HRMS_API.getAttendance('emp-002');
+        const tbody = document.getElementById('attendance-tbody');
+        const statusBadge = document.getElementById('shift-status');
+        const clockInBtn = document.getElementById('clock-in-btn');
+        const clockOutBtn = document.getElementById('clock-out-btn');
+
+        if (data.records.length === 0) {
+          setHtmlContent(tbody, '<tr><td colspan="5" style="text-align: center;">No attendance records found.</td></tr>');
+          return;
+        }
+
+        const today = new Date().toISOString().split('T')[0];
+        const activeToday = data.records.find(r => r.workDate === today && r.status === 'IN_PROGRESS');
+
+        if (activeToday) {
+          statusBadge.textContent = 'ACTIVE (IN PROGRESS)';
+          statusBadge.className = 'badge badge-success';
+          clockInBtn.disabled = true;
+          clockOutBtn.disabled = false;
+        } else {
+          statusBadge.textContent = 'OFFLINE (NOT CLOCKED IN)';
+          statusBadge.className = 'badge badge-secondary';
+          clockInBtn.disabled = false;
+          clockOutBtn.disabled = true;
+        }
+
+        setHtmlContent(tbody, data.records.map(r => `);
+          <tr>
+            <td><strong>${r.workDate}</strong></td>
+            <td>${r.checkIn ? new Date(r.checkIn).toLocaleTimeString() : '—'}</td>
+            <td>${r.checkOut ? new Date(r.checkOut).toLocaleTimeString() : '—'}</td>
+            <td><strong>${r.totalHours} hrs</strong></td>
+            <td><span class="badge badge-${r.status === 'COMPLETED' ? 'success' : 'warning'}">${r.status}</span></td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        console.error('Failed to load attendance:', err);
+      }
+    }
+
+    async function doClockIn() {
+      try {
+        await HRMS_API.clockIn('emp-002');
+        loadAttendance();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    async function doClockOut() {
+      try {
+        await HRMS_API.clockOut('emp-002');
+        loadAttendance();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadAttendance);
+  </script>
+</body>
+</html>

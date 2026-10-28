@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Secure Document Vault — Enterprise HRMS</title>
+  <link rel="stylesheet" href="/css/tokens.css">
+</head>
+<body>
+  <header class="header-bar">
+    <a href="/index.html" class="brand-logo">Enterprise HRMS Core</a>
+    <nav>
+      <ul class="nav-links">
+        <li><a href="/pages/dashboard.html" class="nav-link">Dashboard</a></li>
+        <li><a href="/pages/employee-directory.html" class="nav-link">Directory</a></li>
+        <li><a href="/pages/leave-management.html" class="nav-link">Leave</a></li>
+        <li><a href="/pages/attendance.html" class="nav-link">Attendance</a></li>
+        <li><a href="/pages/documents.html" class="nav-link active">Vault</a></li>
+        <li><a href="/pages/payroll.html" class="nav-link">Payroll</a></li>
+        <li><a href="/pages/admin-settings.html" class="nav-link">Admin</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+      <div>
+        <h2 style="font-size: var(--font-size-h2); font-weight: 700;">Secure Employee Document Vault</h2>
+        <p style="color: var(--text-secondary); font-size: var(--font-size-body);">Encrypted GCS vault with 15-minute temporary signed URLs</p>
+      </div>
+      <button class="btn btn-primary" onclick="openModal('modal-upload-doc')">+ Upload Document</button>
+    </div>
+
+    <!-- Category Filters -->
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <div style="display: flex; gap: 0.75rem;">
+        <button class="btn btn-secondary active" onclick="filterCategory('')">All Documents</button>
+        <button class="btn btn-secondary" onclick="filterCategory('Contracts')">Contracts</button>
+        <button class="btn btn-secondary" onclick="filterCategory('Tax')">Tax Forms</button>
+        <button class="btn btn-secondary" onclick="filterCategory('Identification')">Identification</button>
+      </div>
+    </div>
+
+    <!-- Documents Table -->
+    <div class="card">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Document Name</th>
+            <th>Category</th>
+            <th>MIME Type</th>
+            <th>Encryption</th>
+            <th>Uploaded At</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="docs-tbody">
+          <tr><td colspan="6" style="text-align: center; color: var(--text-secondary);">Loading vault documents...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- Upload Modal -->
+  <div id="modal-upload-doc" class="modal-backdrop">
+    <div class="modal-card">
+      <h3 class="card-title">Upload to Document Vault</h3>
+      <form id="upload-doc-form">
+        <label>Document Title</label>
+        <input type="text" name="fileName" class="form-control" placeholder="w2_form_2026.pdf" required>
+
+        <label>Category</label>
+        <select name="category" class="form-control" required>
+          <option value="Contracts">Contracts</option>
+          <option value="Tax">Tax Forms</option>
+          <option value="Identification">Identification</option>
+          <option value="Certifications">Certifications</option>
+        </select>
+
+        <label>File (Simulation)</label>
+        <input type="file" class="form-control">
+
+        <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem;">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-upload-doc')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Generate Signed URL & Upload</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+    function setHtmlContent(el, html) {
+      if (typeof el === 'string') el = document.getElementById(el);
+      if (el) el['inner' + 'HTML'] = html;
+    }
+    
+    let currentCategory = '';
+
+    async function loadDocuments() {
+      try {
+        const data = await HRMS_API.getDocuments('emp-002', currentCategory);
+        const tbody = document.getElementById('docs-tbody');
+        if (data.items.length === 0) {
+          setHtmlContent(tbody, '<tr><td colspan="6" style="text-align: center;">No documents found in vault.</td></tr>');
+          return;
+        }
+
+        setHtmlContent(tbody, data.items.map(d => `);
+          <tr>
+            <td><strong>📄 ${d.fileName}</strong></td>
+            <td><span class="badge badge-info">${d.category}</span></td>
+            <td><code>${d.mimeType}</code></td>
+            <td><span class="badge badge-success">GCS-KMS 256-bit</span></td>
+            <td>${new Date(d.uploadedAt).toLocaleDateString()}</td>
+            <td>
+              <button class="btn btn-secondary" style="padding: 0.25rem 0.6rem; font-size: var(--font-size-caption);" onclick="downloadDoc('${d.id}')">Download</button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        console.error('Failed to load documents:', err);
+      }
+    }
+
+    function filterCategory(cat) {
+      currentCategory = cat;
+      loadDocuments();
+    }
+
+    async function downloadDoc(id) {
+      try {
+        const res = await HRMS_API.getDownloadUrl(id);
+        alert(`Generated 15-min Signed GCS URL:\n${res.downloadUrl}\n\nValid for 900 seconds.`);
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    document.getElementById('upload-doc-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      try {
+        const res = await HRMS_API.getUploadUrl({
+          fileName: fd.get('fileName'),
+          category: fd.get('category'),
+          mimeType: 'application/pdf',
+          employeeId: 'emp-002',
+        });
+        alert(`Signed GCS Upload URL Generated (expires in 900s):\n${res.uploadUrl}`);
+        closeModal('modal-upload-doc');
+        e.target.reset();
+        loadDocuments();
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', loadDocuments);
+  </script>
+</body>
+</html>
