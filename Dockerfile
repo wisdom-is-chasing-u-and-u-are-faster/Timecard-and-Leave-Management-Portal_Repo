@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package*.json tsconfig*.json ./
 
 # Install all dependencies including devDependencies for build
-RUN npm ci
+RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
 # Copy source and public static assets
 COPY src/ ./src/
@@ -27,7 +27,7 @@ ENV PORT=8080
 
 # Install production dependencies only
 COPY package*.json ./
-RUN npm ci --only=production
+RUN if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev; fi
 
 # Copy compiled files and assets from builder
 COPY --from=builder /app/dist ./dist
